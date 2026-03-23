@@ -303,7 +303,8 @@ int load_NetCfg(const char* filename, NetCfg_t* cfg) {
 			}
             case 0x0C:
 			{
-                if( fread(cfg->commands[cfg->cmdCount].twoU16.param, sizeof(uint16_t), 2, file) != 2) {
+				// it's 2 u16 but merged into 1 u32
+                if( fread(&cfg->commands[cfg->cmdCount].twoU16.param, sizeof(uint32_t), 1, file) != 1) {
 					perror("Error reading twoU16");
                     goto end;
 				}
@@ -545,7 +546,8 @@ int save_NetCfg(const char* filename, NetCfg_t* cfg) {
 			}
             case 0x0C:
 			{
-                if (fwrite(cfg->commands[i].twoU16.param, sizeof(uint16_t), 2, file) != 2) {
+				// 2 u16 but merged in 1 u32
+                if (fwrite(&cfg->commands[i].twoU16.param, sizeof(uint32_t), 1, file) != 1) {
                     perror("Error writing twoU16 parameters");
                     fclose(file);
                     return -1;
