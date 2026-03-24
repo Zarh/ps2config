@@ -32,6 +32,7 @@ void es_NetCommand(NetCommand* command) {
         case 0x2E: case 0x2F: case 0x3D: case 0x3F:
         case 0x43: case 0x4D:
         case 0x17: case 0x1C: case 0x1D: case 0x1E:
+		case 0x0C: // 2 u16 but merged in 1 u32
 		{
             ES_LE(command->oneU32.param);
             break;
@@ -111,11 +112,6 @@ void es_NetCommand(NetCommand* command) {
             }
             break;
 		}
-        case 0x0C:
-		{
-            ES_LE_ARRAY(command->twoU16.param);
-            break;
-		}
         case 0x12:
 		{
             ES_LE(command->cmd_12.count);
@@ -188,6 +184,7 @@ int load_NetCfg(const char* filename, NetCfg_t* cfg) {
 			case 0x2E: case 0x2F: case 0x3D: case 0x3F:
 			case 0x43: case 0x4D: 
 			case 0x17: case 0x1C: case 0x1D: case 0x1E:
+			case 0x0C:
 			{
                 if (fread(&cfg->commands[cfg->cmdCount].oneU32.param, sizeof(uint32_t), 1, file) != 1) {
                     perror("Error reading parameter for cmdid 0x04");
@@ -299,15 +296,6 @@ int load_NetCfg(const char* filename, NetCfg_t* cfg) {
 						goto end;
 					}
                 }
-                break;
-			}
-            case 0x0C:
-			{
-				// it's 2 u16 but merged into 1 u32
-                if( fread(&cfg->commands[cfg->cmdCount].twoU16.param, sizeof(uint32_t), 1, file) != 1) {
-					perror("Error reading twoU16");
-                    goto end;
-				}
                 break;
 			}
             case 0x12:
@@ -427,6 +415,7 @@ int save_NetCfg(const char* filename, NetCfg_t* cfg) {
 			case 0x2E: case 0x2F: case 0x3D: case 0x3F:
 			case 0x43: case 0x4D:
 			case 0x17: case 0x1C: case 0x1D: case 0x1E:
+			case 0x0C:
 			{
 				if (fwrite(&cfg->commands[i].oneU32.param, sizeof(uint32_t), 1, file) != 1) {
 					perror("Error writing oneU32.param");
@@ -541,16 +530,6 @@ int save_NetCfg(const char* filename, NetCfg_t* cfg) {
                         fclose(file);
                         return -1;
                     }
-                }
-                break;
-			}
-            case 0x0C:
-			{
-				// 2 u16 but merged in 1 u32
-                if (fwrite(&cfg->commands[i].twoU16.param, sizeof(uint32_t), 1, file) != 1) {
-                    perror("Error writing twoU16 parameters");
-                    fclose(file);
-                    return -1;
                 }
                 break;
 			}
@@ -712,8 +691,9 @@ int NetCfg_to_txt(FILE* file, const NetCfg_t* cfg) {
 			}
 			case 0x0C:
 			{
-				fprintf(file, "\t\tparam1: 0x%04X\n", cfg->commands[i].twoU16.param[0]);
-				fprintf(file, "\t\tparam2: 0x%04X\n", cfg->commands[i].twoU16.param[1]);
+				// 2 params in oneU32
+				fprintf(file,"\t\tparam1: 0x%04X\n",	(cfg->commands[i].oneU32.param >> 16) & 0xFFFF);
+				fprintf(file,"\t\tparam2: 0x%04X\n",	cfg->commands[i].oneU32.param & 0xFFFF);
 				break;
 			}
 			case 0x12:

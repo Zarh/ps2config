@@ -120,6 +120,7 @@ void es_GxCommand(GxCommand* command) {
         }
         case 0x01: case 0x03: case 0x06: case 0x0B: case 0x0C: case 0x0F:
         case 0x13: case 0x1C: case 0x1E: case 0x21: case 0x24: case 0x28: case 0x2A: case 0x2B:
+        case 0x0A:
         {
             ES_BE(command->oneU32.param);
             break;
@@ -127,11 +128,6 @@ void es_GxCommand(GxCommand* command) {
         case 0x11: case 0x1D: case 0x20:
         {
             ES_BE(command->oneU64.param);
-            break;
-        }
-        case 0x0A:
-        {
-            ES_BE_ARRAY(command->twoU16.param);
             break;
         }
         case 0x0D: case 0x0E: case 0x22: case 0x23: case 0x25:
@@ -378,6 +374,7 @@ int load_GxCfg(const char* filename, GxCfg_t* cfg) {
             }
 			case 0x01: case 0x03: case 0x06: case 0x0B: case 0x0C: case 0x0F:
             case 0x13: case 0x1C: case 0x1E: case 0x21: case 0x24: case 0x28: case 0x2A: case 0x2B:
+            case 0x0A:
             {  
                 if( fread(&cfg->commands[i].oneU32.param, sizeof(uint32_t), 1, file) != 1  ||
                     fread(cfg->commands[i].oneU32.align, sizeof(uint8_t), 12, file) != 12 ) {
@@ -409,15 +406,6 @@ int load_GxCfg(const char* filename, GxCfg_t* cfg) {
                 if( fread(&cfg->commands[i].oneU64.param, sizeof(int64_t), 1, file) != 1  ||
                     fread(cfg->commands[i].oneU64.align, sizeof(uint8_t), 8, file) != 8 ) {
                     perror("Error reading oneU64\n");
-                    goto end;
-                }
-                break;
-            }
-            case 0x0A:
-            {
-                if( fread(&cfg->commands[i].twoU16.param, sizeof(uint16_t), 2, file) != 2 ||
-                    fread(cfg->commands[i].twoU16.align, sizeof(uint8_t), 12, file) != 12 ) {
-                    perror("Error reading twoU16\n");
                     goto end;
                 }
                 break;
@@ -665,6 +653,7 @@ int save_GxCfg(const char* filename, GxCfg_t* cfg) {
             }
             case 0x01: case 0x03: case 0x06: case 0x0B: case 0x0C: case 0x0F:
             case 0x13: case 0x1C: case 0x1E: case 0x21: case 0x24: case 0x28: case 0x2A: case 0x2B:
+            case 0x0A:
             {
                 if (fwrite(&cfg->commands[i].oneU32.param, sizeof(int32_t), 1, file) != 1 ||
                     fwrite(cfg->commands[i].oneU32.align, sizeof(uint8_t), 12, file) != 12) {
@@ -696,15 +685,6 @@ int save_GxCfg(const char* filename, GxCfg_t* cfg) {
                 if (fwrite(&cfg->commands[i].oneU64.param, sizeof(uint64_t), 1, file) != 1 ||
                     fwrite(cfg->commands[i].oneU64.align, sizeof(uint8_t), 8, file) != 8) {
                     perror("Error writing oneU64 data\n");
-                    goto end;
-                }
-                break;
-            }
-            case 0x0A:
-            {
-                if (fwrite(&cfg->commands[i].twoU16.param, sizeof(uint16_t), 2, file) != 2 ||
-                    fwrite(cfg->commands[i].twoU16.align, sizeof(uint8_t), 12, file) != 12) {
-                    perror("Error writing twoU16 data\n");
                     goto end;
                 }
                 break;
@@ -851,9 +831,10 @@ int GxCfg_to_txt(FILE* file, const GxCfg_t* cfg) {
             }
             case 0x0A:
             {
-                fprintf(file, "\t\tparam1 : 0x%04X\n", cfg->commands[i].twoU16.param[0]);
-                fprintf(file, "\t\tparam2 : 0x%04X\n", cfg->commands[i].twoU16.param[1]);
-				print_align(file, cfg->commands[i].twoU16.align, sizeof(cfg->commands[i].twoU16.align), 2);
+                // 2 params in oneU32
+				fprintf(file,"\t\tparam1: 0x%04X\n",	(cfg->commands[i].oneU32.param >> 16) & 0xFFFF);
+				fprintf(file,"\t\tparam2: 0x%04X\n",	cfg->commands[i].oneU32.param & 0xFFFF);
+				print_align(file, cfg->commands[i].oneU32.align, sizeof(cfg->commands[i].oneU32.align), 2);
                 break;
             }
             case 0x0D: case 0x0E: case 0x22: case 0x23: case 0x25:
